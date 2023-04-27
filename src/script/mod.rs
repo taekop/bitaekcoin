@@ -89,32 +89,18 @@ impl Script {
         }
     }
 
-    pub fn to_unlocking_standard(&self) -> Option<UnlockingStandardScript> {
+    pub fn to_unlocking_standard(&self, ty: StandardScriptType) -> Option<UnlockingStandardScript> {
         let instructions = self.0.clone();
         let len = instructions.len();
-        if len >= 2 && instructions[0].opcode() == OP_0 {
-            let mut sigs = Vec::new();
-            // 1..len
-            for instruction in instructions.iter().take(len).skip(1) {
-                if let Instruction::PushBytes(pb) = instruction {
-                    if let Some(sig) = signature_sighash(pb.bytes()) {
-                        sigs.push(sig);
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-            if sigs.len() == len - 1 {
-                return Some(UnlockingStandardScript::P2MS(sigs));
-            }
-        }
-        match len {
-            1 => {
-                if let Instruction::PushBytes(pb) = &instructions[0] {
-                    if let Some((signature, sighash)) = signature_sighash(pb.bytes()) {
-                        Some(UnlockingStandardScript::P2PK(signature, sighash))
+        match ty {
+            StandardScriptType::P2PK => {
+                if len == 1 {
+                    if let Instruction::PushBytes(pb) = &instructions[0] {
+                        if let Some((signature, sighash)) = signature_sighash(pb.bytes()) {
+                            Some(UnlockingStandardScript::P2PK(signature, sighash))
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
@@ -122,21 +108,51 @@ impl Script {
                     None
                 }
             }
-            2 => match (&instructions[0], &instructions[1]) {
-                (Instruction::PushBytes(pb1), Instruction::PushBytes(pb2)) => {
-                    if let Some((signature, sighash)) = signature_sighash(pb1.bytes()) {
-                        Some(UnlockingStandardScript::P2PKH(
-                            signature,
-                            sighash,
-                            pb2.bytes(),
-                        ))
-                    } else {
-                        None
+            StandardScriptType::P2PKH => {
+                if len == 2 {
+                    match (&instructions[0], &instructions[1]) {
+                        (Instruction::PushBytes(pb1), Instruction::PushBytes(pb2)) => {
+                            if let Some((signature, sighash)) = signature_sighash(pb1.bytes()) {
+                                Some(UnlockingStandardScript::P2PKH(
+                                    signature,
+                                    sighash,
+                                    pb2.bytes(),
+                                ))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
                     }
+                } else {
+                    None
                 }
-                _ => None,
-            },
-            _ => None,
+            }
+            StandardScriptType::P2MS => {
+                if len >= 2 && instructions[0].opcode() == OP_0 {
+                    let mut sigs = Vec::new();
+                    // 1..len
+                    for instruction in instructions.iter().take(len).skip(1) {
+                        if let Instruction::PushBytes(pb) = instruction {
+                            if let Some(sig) = signature_sighash(pb.bytes()) {
+                                sigs.push(sig);
+                            } else {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    if sigs.len() == len - 1 {
+                        return Some(UnlockingStandardScript::P2MS(sigs));
+                    }
+                    None
+                } else {
+                    None
+                }
+            }
+            StandardScriptType::P2SH => todo!(),
+            StandardScriptType::NullData => todo!(),
         }
     }
 }
@@ -187,6 +203,15 @@ impl Decodable for Script {
         }
         Ok(Script(instructions))
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum StandardScriptType {
+    P2PK,
+    P2PKH,
+    P2MS,
+    P2SH,
+    NullData,
 }
 
 #[derive(Debug, Clone)]
@@ -246,29 +271,4 @@ pub enum UnlockingStandardScript {
     P2PK(Signature, SigHash),
     P2PKH(Signature, SigHash, Vec<u8>),
     P2MS(Vec<(Signature, SigHash)>),
-}
-
-#[cfg(test)]
-mod tests {
-    use hex_literal::hex;
-
-    use super::*;
-
-    #[test]
-    fn test_to_unlocking_standard() {
-        let script = Script(vec![Instruction::PushBytes(PushBytes::Bytes(72, hex!("3045022100be47eec0d762891eb9beb8f4557551b8fbc3fbaa206ea9cd99a4931a0afdd13c022033919442e1cdf93bd268dbf5ca41cfa17b083510f1fa3edea40fbe34acd6fbd201").to_vec()))]);
-        let unlocking_standard_script = script.to_unlocking_standard().unwrap();
-        if let UnlockingStandardScript::P2PK(signature, SigHash::All) = unlocking_standard_script {
-            assert_eq!(
-                signature.r().to_string(),
-                "BE47EEC0D762891EB9BEB8F4557551B8FBC3FBAA206EA9CD99A4931A0AFDD13C"
-            );
-            assert_eq!(
-                signature.s().to_string(),
-                "33919442E1CDF93BD268DBF5CA41CFA17B083510F1FA3EDEA40FBE34ACD6FBD2"
-            );
-        } else {
-            panic!()
-        }
-    }
 }

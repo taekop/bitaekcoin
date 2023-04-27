@@ -5,7 +5,7 @@ use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 use crate::{
     encode::{Encodable, VarInt},
     hash::{ripemd160, sha256},
-    script::{Script, StandardScript, UnlockingStandardScript},
+    script::{Script, StandardScript, StandardScriptType, UnlockingStandardScript},
 };
 
 pub type TxID = [u8; 32];
@@ -31,61 +31,67 @@ impl Transaction {
 
         match locking_script.to_standard() {
             Some(standard_script) => match standard_script {
-                StandardScript::P2PK(pk) => match unlocking_script.to_unlocking_standard() {
-                    Some(UnlockingStandardScript::P2PK(signature, sighash)) => {
-                        let hash = sighash.hash(self, ind, locking_script);
-                        if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
-                            verifying_key.verify_prehash(&hash, &signature).is_ok()
-                        } else {
-                            false
-                        }
-                    }
-                    _ => false,
-                },
-                StandardScript::P2PKH(pkh) => match unlocking_script.to_unlocking_standard() {
-                    Some(UnlockingStandardScript::P2PKH(signature, sighash, pk)) => {
-                        let pkh2 = ripemd160(sha256(pk.clone()).to_vec());
-                        if pkh.len() != 20 {
-                            return false;
-                        }
-                        for i in 0..20 {
-                            if pkh[i] != pkh2[i] {
-                                return false;
+                StandardScript::P2PK(pk) => {
+                    match unlocking_script.to_unlocking_standard(StandardScriptType::P2PK) {
+                        Some(UnlockingStandardScript::P2PK(signature, sighash)) => {
+                            let hash = sighash.hash(self, ind, locking_script);
+                            if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
+                                verifying_key.verify_prehash(&hash, &signature).is_ok()
+                            } else {
+                                false
                             }
                         }
-                        let hash = sighash.hash(self, ind, locking_script);
-                        if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
-                            verifying_key.verify_prehash(&hash, &signature).is_ok()
-                        } else {
-                            false
-                        }
+                        _ => false,
                     }
-                    _ => false,
-                },
-                StandardScript::P2MS(m, _, pks) => match unlocking_script.to_unlocking_standard() {
-                    Some(UnlockingStandardScript::P2MS(sigs)) => {
-                        let mut matches = 0;
-                        let mut sigs = VecDeque::from(sigs);
-                        let mut pks = VecDeque::from(pks);
-                        while !sigs.is_empty() {
-                            let (signature, sighash) = sigs.pop_front().unwrap();
-                            let hash = sighash.hash(self, ind, locking_script);
-                            while !pks.is_empty() {
-                                let pk = pks.pop_front().unwrap();
-                                if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
-                                    if verifying_key.verify_prehash(&hash, &signature).is_ok() {
-                                        matches += 1;
-                                        break;
-                                    }
-                                } else {
+                }
+                StandardScript::P2PKH(pkh) => {
+                    match unlocking_script.to_unlocking_standard(StandardScriptType::P2PKH) {
+                        Some(UnlockingStandardScript::P2PKH(signature, sighash, pk)) => {
+                            let pkh2 = ripemd160(sha256(pk.clone()).to_vec());
+                            if pkh.len() != 20 {
+                                return false;
+                            }
+                            for i in 0..20 {
+                                if pkh[i] != pkh2[i] {
                                     return false;
                                 }
                             }
+                            let hash = sighash.hash(self, ind, locking_script);
+                            if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
+                                verifying_key.verify_prehash(&hash, &signature).is_ok()
+                            } else {
+                                false
+                            }
                         }
-                        matches >= m
+                        _ => false,
                     }
-                    _ => false,
-                },
+                }
+                StandardScript::P2MS(m, _, pks) => {
+                    match unlocking_script.to_unlocking_standard(StandardScriptType::P2MS) {
+                        Some(UnlockingStandardScript::P2MS(sigs)) => {
+                            let mut matches = 0;
+                            let mut sigs = VecDeque::from(sigs);
+                            let mut pks = VecDeque::from(pks);
+                            while !sigs.is_empty() {
+                                let (signature, sighash) = sigs.pop_front().unwrap();
+                                let hash = sighash.hash(self, ind, locking_script);
+                                while !pks.is_empty() {
+                                    let pk = pks.pop_front().unwrap();
+                                    if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
+                                        if verifying_key.verify_prehash(&hash, &signature).is_ok() {
+                                            matches += 1;
+                                            break;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                }
+                            }
+                            matches >= m
+                        }
+                        _ => false,
+                    }
+                }
                 StandardScript::P2SH(_) => todo!(),
                 StandardScript::NullData(_) => todo!(),
             },
