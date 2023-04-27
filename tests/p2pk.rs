@@ -61,5 +61,5 @@ fn test() {
         hash,
         hex!("1fb32874e31febdd88dcbb6564499864543ad1378e580b68c09ebfe370b50588")
     );
-    assert!(tx.validate(0, &locking_script));
+    assert!(tx.validate(0, &tx.inputs[0].script_sig, &locking_script));
 }

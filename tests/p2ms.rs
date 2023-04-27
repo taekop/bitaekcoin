@@ -56,5 +56,5 @@ fn test() {
     );
 
     let locking_script = locking_script();
-    assert!(tx.validate(0, &locking_script));
+    assert!(tx.validate(0, &tx.inputs[0].script_sig, &locking_script));
 }

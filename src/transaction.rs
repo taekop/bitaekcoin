@@ -26,9 +26,7 @@ impl Transaction {
         hash
     }
 
-    pub fn validate(&self, ind: usize, locking_script: &Script) -> bool {
-        let unlocking_script = self.inputs[ind].script_sig.clone();
-
+    pub fn validate(&self, ind: usize, unlocking_script: &Script, locking_script: &Script) -> bool {
         match locking_script.to_standard() {
             Some(standard_script) => match standard_script {
                 StandardScript::P2PK(pk) => {
@@ -92,7 +90,23 @@ impl Transaction {
                         _ => false,
                     }
                 }
-                StandardScript::P2SH(_) => todo!(),
+                StandardScript::P2SH(sh) => {
+                    match unlocking_script.to_unlocking_standard(StandardScriptType::P2SH) {
+                        Some(UnlockingStandardScript::P2SH(unlocking_script, redeem_script)) => {
+                            let sh2 = ripemd160(sha256(redeem_script.encode()).to_vec());
+                            if sh.len() != 20 {
+                                return false;
+                            }
+                            for i in 0..20 {
+                                if sh[i] != sh2[i] {
+                                    return false;
+                                }
+                            }
+                            self.validate(ind, &unlocking_script, &redeem_script)
+                        }
+                        _ => false,
+                    }
+                }
                 StandardScript::NullData(_) => todo!(),
             },
             None => unimplemented!("NON STANDARD SCRIPT"),

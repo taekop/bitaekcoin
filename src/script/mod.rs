@@ -151,7 +151,25 @@ impl Script {
                     None
                 }
             }
-            StandardScriptType::P2SH => todo!(),
+            StandardScriptType::P2SH => {
+                if len >= 2 {
+                    if let Instruction::PushBytes(pb) = &instructions[len - 1] {
+                        if let Ok(redeem_script) = Script::decode(&mut VecDeque::from(pb.bytes())) {
+                            let unlocking_script = Script(instructions[0..len - 1].to_vec());
+                            Some(UnlockingStandardScript::P2SH(
+                                unlocking_script,
+                                redeem_script,
+                            ))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
             StandardScriptType::NullData => todo!(),
         }
     }
@@ -271,4 +289,5 @@ pub enum UnlockingStandardScript {
     P2PK(Signature, SigHash),
     P2PKH(Signature, SigHash, Vec<u8>),
     P2MS(Vec<(Signature, SigHash)>),
+    P2SH(Script, Script),
 }
