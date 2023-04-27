@@ -107,7 +107,7 @@ impl Transaction {
                         _ => false,
                     }
                 }
-                StandardScript::NullData(_) => todo!(),
+                StandardScript::NullData(_) => false,
             },
             None => unimplemented!("NON STANDARD SCRIPT"),
         }

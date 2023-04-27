@@ -170,7 +170,7 @@ impl Script {
                     None
                 }
             }
-            StandardScriptType::NullData => todo!(),
+            StandardScriptType::NullData => None,
         }
     }
 }
