@@ -1,10 +1,44 @@
+use std::collections::HashMap;
+
 use primitive_types::U256;
 
-use crate::{hash::sha256, transaction::Transaction};
+use crate::{
+    hash::{merkle_root, sha256},
+    script::Script,
+    transaction::{Transaction, TxID},
+};
 
 pub struct Block {
     pub header: BlockHeader,
     pub transactions: Vec<Transaction>,
+}
+
+impl Block {
+    pub fn validate(&self, outpoints: HashMap<(TxID, u32), Script>) -> bool {
+        // Validate transactions
+        for i in 1..self.transactions.len() {
+            let tx = &self.transactions[i];
+            for i in 0..tx.inputs.len() {
+                match outpoints.get(&(tx.inputs[i].txid, tx.inputs[i].output_index)) {
+                    Some(locking_script) => {
+                        if !tx.validate(i, &tx.inputs[i].script_sig, locking_script) {
+                            return false;
+                        }
+                    }
+                    None => return false,
+                }
+            }
+        }
+
+        // Validate Merkle Root
+        let txids = self.transactions.iter().map(|tx| tx.txid()).collect();
+        if self.header.merkle_root != merkle_root(txids) {
+            return false;
+        }
+
+        // Validate Block Hash
+        self.header.validate()
+    }
 }
 
 pub struct BlockHeader {

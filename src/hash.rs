@@ -4,8 +4,29 @@ use sha2::{Digest, Sha256};
 use crate::{
     encode::{Encodable, VarInt},
     script::Script,
-    transaction::Transaction,
+    transaction::{Transaction, TxID},
 };
+
+pub fn merkle_root(mut txids: Vec<TxID>) -> [u8; 32] {
+    for txid in &mut txids {
+        txid.reverse();
+    }
+    while txids.len() > 1 {
+        if txids.len() % 2 == 1 {
+            txids.push(*txids.last().unwrap());
+        }
+        let mut new_txids = Vec::new();
+        for i in 0..txids.len() / 2 {
+            let h1 = txids[i * 2];
+            let h2 = txids[i * 2 + 1];
+            let h = sha256(sha256([h1, h2].concat().to_vec()).to_vec());
+            new_txids.push(h);
+        }
+        txids = new_txids;
+    }
+    txids[0].reverse();
+    txids[0]
+}
 
 pub fn sha256(bytes: Vec<u8>) -> [u8; 32] {
     let mut hasher = Sha256::new();
