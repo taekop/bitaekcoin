@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::{
     encode::{Decodable, DecodeError, Encodable},
     hash::SigHash,
-    utils::pop_front,
+    utils::{pop_front, signature_sighash},
 };
 
 pub mod instruction;
@@ -95,17 +95,8 @@ impl Script {
         match len {
             1 => {
                 if let Instruction::PushBytes(pb) = &instructions[0] {
-                    let mut signature = pb.bytes();
-                    if let Some(sighash) = signature.pop() {
-                        if let Some(sighash) = SigHash::from_byte(sighash) {
-                            if let Ok(signature) = Signature::from_der(&signature) {
-                                Some(UnlockingStandardScript::P2PK(signature, sighash))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
+                    if let Some((signature, sighash)) = signature_sighash(pb.bytes()) {
+                        Some(UnlockingStandardScript::P2PK(signature, sighash))
                     } else {
                         None
                     }
@@ -113,6 +104,20 @@ impl Script {
                     None
                 }
             }
+            2 => match (&instructions[0], &instructions[1]) {
+                (Instruction::PushBytes(pb1), Instruction::PushBytes(pb2)) => {
+                    if let Some((signature, sighash)) = signature_sighash(pb1.bytes()) {
+                        Some(UnlockingStandardScript::P2PKH(
+                            signature,
+                            sighash,
+                            pb2.bytes(),
+                        ))
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -221,6 +226,7 @@ impl Encodable for StandardScript {
 #[derive(Debug, Clone)]
 pub enum UnlockingStandardScript {
     P2PK(Signature, SigHash),
+    P2PKH(Signature, SigHash, Vec<u8>),
 }
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
 use crate::{
     encode::{Encodable, VarInt},
-    hash::sha256,
+    hash::{ripemd160, sha256},
     script::{Script, StandardScript, UnlockingStandardScript},
 };
 
@@ -40,7 +40,26 @@ impl Transaction {
                     }
                     _ => false,
                 },
-                StandardScript::P2PKH(_) => todo!(),
+                StandardScript::P2PKH(pkh) => match unlocking_script.to_unlocking_standard() {
+                    Some(UnlockingStandardScript::P2PKH(signature, sighash, pk)) => {
+                        let pkh2 = ripemd160(sha256(pk.clone()).to_vec());
+                        if pkh.len() != 20 {
+                            return false;
+                        }
+                        for i in 0..20 {
+                            if pkh[i] != pkh2[i] {
+                                return false;
+                            }
+                        }
+                        let hash = sighash.hash(self, ind, locking_script);
+                        if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
+                            verifying_key.verify_prehash(&hash, &signature).is_ok()
+                        } else {
+                            false
+                        }
+                    }
+                    _ => false,
+                },
                 StandardScript::P2MS(_, _, _) => todo!(),
                 StandardScript::P2SH(_) => todo!(),
                 StandardScript::NullData(_) => todo!(),
