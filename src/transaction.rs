@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
 use crate::{
@@ -60,7 +62,30 @@ impl Transaction {
                     }
                     _ => false,
                 },
-                StandardScript::P2MS(_, _, _) => todo!(),
+                StandardScript::P2MS(m, _, pks) => match unlocking_script.to_unlocking_standard() {
+                    Some(UnlockingStandardScript::P2MS(sigs)) => {
+                        let mut matches = 0;
+                        let mut sigs = VecDeque::from(sigs);
+                        let mut pks = VecDeque::from(pks);
+                        while !sigs.is_empty() {
+                            let (signature, sighash) = sigs.pop_front().unwrap();
+                            let hash = sighash.hash(self, ind, locking_script);
+                            while !pks.is_empty() {
+                                let pk = pks.pop_front().unwrap();
+                                if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
+                                    if verifying_key.verify_prehash(&hash, &signature).is_ok() {
+                                        matches += 1;
+                                        break;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            }
+                        }
+                        matches >= m
+                    }
+                    _ => false,
+                },
                 StandardScript::P2SH(_) => todo!(),
                 StandardScript::NullData(_) => todo!(),
             },

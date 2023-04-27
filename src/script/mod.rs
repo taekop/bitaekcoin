@@ -92,6 +92,24 @@ impl Script {
     pub fn to_unlocking_standard(&self) -> Option<UnlockingStandardScript> {
         let instructions = self.0.clone();
         let len = instructions.len();
+        if len >= 2 && instructions[0].opcode() == OP_0 {
+            let mut sigs = Vec::new();
+            // 1..len
+            for instruction in instructions.iter().take(len).skip(1) {
+                if let Instruction::PushBytes(pb) = instruction {
+                    if let Some(sig) = signature_sighash(pb.bytes()) {
+                        sigs.push(sig);
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            if sigs.len() == len - 1 {
+                return Some(UnlockingStandardScript::P2MS(sigs));
+            }
+        }
         match len {
             1 => {
                 if let Instruction::PushBytes(pb) = &instructions[0] {
@@ -227,6 +245,7 @@ impl Encodable for StandardScript {
 pub enum UnlockingStandardScript {
     P2PK(Signature, SigHash),
     P2PKH(Signature, SigHash, Vec<u8>),
+    P2MS(Vec<(Signature, SigHash)>),
 }
 
 #[cfg(test)]
