@@ -166,20 +166,47 @@ impl Transaction {
                     }
                 }
                 StandardScript::P2SH(sh) => {
-                    match unlocking_script.to_unlocking_standard(StandardScriptType::P2SH) {
-                        Some(UnlockingStandardScript::P2SH(unlocking_script, redeem_script)) => {
-                            let sh2 = ripemd160(sha256(redeem_script.encode()).to_vec());
-                            if sh.len() != 20 {
-                                return false;
-                            }
-                            for i in 0..20 {
-                                if sh[i] != sh2[i] {
+                    if self.is_segwit() {
+                        if unlocking_script.0.len() != 1 {
+                            return false;
+                        }
+                        if let Instruction::PushBytes(pb) = &unlocking_script.0[0] {
+                            if let Ok(redeem_script) = Script::decode(&mut pb.bytes().into()) {
+                                let sh2 = ripemd160(sha256(redeem_script.encode()).to_vec());
+                                if sh.len() != 20 {
                                     return false;
                                 }
+                                for i in 0..20 {
+                                    if sh[i] != sh2[i] {
+                                        return false;
+                                    }
+                                }
+                                self.validate(ind, &Script(vec![]), &redeem_script, amount)
+                            } else {
+                                false
                             }
-                            self.validate(ind, &unlocking_script, &redeem_script, amount)
+                        } else {
+                            false
                         }
-                        _ => false,
+                    } else {
+                        match unlocking_script.to_unlocking_standard(StandardScriptType::P2SH) {
+                            Some(UnlockingStandardScript::P2SH(
+                                unlocking_script,
+                                redeem_script,
+                            )) => {
+                                let sh2 = ripemd160(sha256(redeem_script.encode()).to_vec());
+                                if sh.len() != 20 {
+                                    return false;
+                                }
+                                for i in 0..20 {
+                                    if sh[i] != sh2[i] {
+                                        return false;
+                                    }
+                                }
+                                self.validate(ind, &unlocking_script, &redeem_script, amount)
+                            }
+                            _ => false,
+                        }
                     }
                 }
                 StandardScript::NullData(_) => false,
