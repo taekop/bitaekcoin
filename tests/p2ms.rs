@@ -1,7 +1,7 @@
 use bitaekcoin::{
     encode::VarInt,
     script::{
-        instruction::{Instruction, PushBytes, OP_0},
+        instruction::{Instruction, PushBytes},
         Script, StandardScript,
     },
     transaction::{Transaction, TxIn, TxOut},
@@ -17,7 +17,7 @@ fn tx() -> Transaction {
             output_index: 0,
             script_size: VarInt(147),
             script_sig: Script(vec![
-                Instruction::Opcode(OP_0),
+                Instruction::PushBytes(PushBytes::Empty),
                 Instruction::PushBytes(PushBytes::Bytes(72, hex!("3045022100af204ef91b8dba5884df50f87219ccef22014c21dd05aa44470d4ed800b7f6e40220428fe058684db1bb2bfb6061bff67048592c574effc217f0d150daedcf36787601").to_vec())),
                 Instruction::PushBytes(PushBytes::Bytes(72, hex!("3045022100e8547aa2c2a2761a5a28806d3ae0d1bbf0aeff782f9081dfea67b86cacb321340220771a166929469c34959daf726a2ac0c253f9aff391e58a3c7cb46d8b7e0fdc4801").to_vec()))
             ]),
