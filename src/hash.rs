@@ -50,20 +50,24 @@ pub enum SigHash {
 
 impl SigHash {
     pub fn hash(self, tx: &Transaction, input_index: usize, script: &Script) -> [u8; 32] {
-        // TODO: subscript is the entire script only if non-segwit, non-P2SH script without OP_CODESEPARATOR
-        let subscript = script;
-        // TODO: remove signature in subscript
-        let mut tx = tx.clone();
-        for tx_in in &mut tx.inputs {
-            tx_in.script_size = VarInt(0);
-            tx_in.script_sig = Script(vec![]);
+        if tx.is_segwit() {
+            todo!()
+        } else {
+            // TODO: subscript is the entire script only if non-segwit, non-P2SH script without OP_CODESEPARATOR
+            let subscript = script;
+            // TODO: remove signature in subscript
+            let mut tx = tx.clone();
+            for tx_in in &mut tx.inputs {
+                tx_in.script_size = VarInt(0);
+                tx_in.script_sig = Script(vec![]);
+            }
+            tx.inputs[input_index].script_size = VarInt(subscript.encode().len() as u64);
+            tx.inputs[input_index].script_sig = subscript.clone();
+            // TODO: handle None, Single, AnyoneCanPay
+            let mut bytes = tx.encode();
+            bytes.extend(self.to_four_bytes());
+            sha256(sha256(bytes).to_vec())
         }
-        tx.inputs[input_index].script_size = VarInt(subscript.encode().len() as u64);
-        tx.inputs[input_index].script_sig = subscript.clone();
-        // TODO: handle None, Single, AnyoneCanPay
-        let mut bytes = tx.encode();
-        bytes.extend(self.to_four_bytes());
-        sha256(sha256(bytes).to_vec())
     }
 
     pub fn from_byte(byte: u8) -> Option<Self> {

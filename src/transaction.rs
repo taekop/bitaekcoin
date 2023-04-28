@@ -5,25 +5,47 @@ use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 use crate::{
     encode::{Encodable, VarInt},
     hash::{ripemd160, sha256},
-    script::{Script, StandardScript, StandardScriptType, UnlockingStandardScript},
+    script::{
+        instruction::PushBytes, Script, StandardScript, StandardScriptType, UnlockingStandardScript,
+    },
 };
 
 pub type TxID = [u8; 32];
 
-// TODO: flag, witness
 #[derive(Debug, Clone)]
 pub struct Transaction {
     pub version: u32,
+    pub flag: Option<u8>,
     pub inputs: Vec<TxIn>,
     pub outputs: Vec<TxOut>,
+    pub witnesses: Vec<Witness>,
     pub lock_time: u32,
 }
 
 impl Transaction {
     pub fn txid(&self) -> TxID {
+        let mut hash = sha256(sha256(self.encode_without_witness()).to_vec());
+        hash.reverse();
+        hash
+    }
+
+    pub fn wtxid(&self) -> TxID {
         let mut hash = sha256(sha256(self.encode()).to_vec());
         hash.reverse();
         hash
+    }
+
+    pub fn encode_without_witness(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+        bytes.append(&mut self.version.encode());
+        bytes.append(&mut self.inputs.encode());
+        bytes.append(&mut self.outputs.encode());
+        bytes.append(&mut self.lock_time.encode());
+        bytes
+    }
+
+    pub fn is_segwit(&self) -> bool {
+        self.flag.is_some()
     }
 
     pub fn validate(&self, ind: usize, unlocking_script: &Script, locking_script: &Script) -> bool {
@@ -118,8 +140,17 @@ impl Encodable for Transaction {
     fn encode(&self) -> Vec<u8> {
         let mut bytes = vec![];
         bytes.append(&mut self.version.encode());
+        if let Some(flag) = self.flag {
+            bytes.push(0); // marker
+            bytes.push(flag);
+        }
         bytes.append(&mut self.inputs.encode());
         bytes.append(&mut self.outputs.encode());
+        if self.flag.is_some() {
+            for witness in &self.witnesses {
+                bytes.append(&mut witness.encode());
+            }
+        }
         bytes.append(&mut self.lock_time.encode());
         bytes
     }
@@ -164,10 +195,10 @@ impl Encodable for TxOut {
 }
 
 #[derive(Debug, Clone)]
-pub struct Witness;
+pub struct Witness(pub Vec<PushBytes>);
 
 impl Encodable for Witness {
     fn encode(&self) -> Vec<u8> {
-        todo!()
+        self.0.encode()
     }
 }

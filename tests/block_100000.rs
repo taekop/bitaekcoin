@@ -32,6 +32,7 @@ fn block() -> Block {
 fn tx1() -> Transaction {
     Transaction {
         version: 1,
+        flag: None,
         inputs: vec![TxIn {
             txid: hex!("0000000000000000000000000000000000000000000000000000000000000000"),
             output_index: 0xffffffff,
@@ -47,6 +48,7 @@ fn tx1() -> Transaction {
             script_size: VarInt(67),
             script_pub_key: StandardScript::P2PK(hex!("041b0e8c2567c12536aa13357b79a073dc4444acb83c4ec7a0e2f99dd7457516c5817242da796924ca4e99947d087fedf9ce467cb9f7c6287078f801df276fdf84").to_vec()).into_script(),
         }],
+        witnesses: vec![],
         lock_time: 0,
     }
 }
@@ -55,6 +57,7 @@ fn tx1() -> Transaction {
 fn tx2() -> Transaction {
     Transaction {
         version: 1,
+        flag: None,
         inputs: vec![TxIn {
             txid: hex!("87a157f3fd88ac7907c05fc55e271dc4acdc5605d187d646604ca8c0e9382e03"),
             output_index: 0,
@@ -74,6 +77,7 @@ fn tx2() -> Transaction {
             script_size: VarInt(25),
             script_pub_key: StandardScript::P2PKH(hex!("948c765a6914d43f2a7ac177da2c2f6b52de3d7c").to_vec()).into_script(),
         }],
+        witnesses: vec![],
         lock_time: 0,
     }
 }
@@ -82,6 +86,7 @@ fn tx2() -> Transaction {
 fn tx3() -> Transaction {
     Transaction {
         version: 1,
+        flag: None,
         inputs: vec![TxIn {
             txid: hex!("cf4e2978d0611ce46592e02d7e7daf8627a316ab69759a9f3df109a7f2bf3ec3"),
             output_index: 1,
@@ -102,6 +107,7 @@ fn tx3() -> Transaction {
             script_pub_key: StandardScript::P2PKH(hex!("6b1281eec25ab4e1e0793ff4e08ab1abb3409cd9").to_vec()).into_script(),
         }],
         lock_time: 0,
+        witnesses: vec![],
     }
 }
 
@@ -109,6 +115,7 @@ fn tx3() -> Transaction {
 fn tx4() -> Transaction {
     Transaction {
         version: 1,
+        flag: None,
         inputs: vec![TxIn {
             txid: hex!("f4515fed3dc4a19b90a317b9840c243bac26114cf637522373a7d486b372600b"),
             output_index: 0,
@@ -125,6 +132,7 @@ fn tx4() -> Transaction {
             script_pub_key: StandardScript::P2PKH(hex!("39aa3d569e06a1d7926dc4be1193c99bf2eb9ee0").to_vec()).into_script(),
         }],
         lock_time: 0,
+        witnesses: vec![],
     }
 }
 

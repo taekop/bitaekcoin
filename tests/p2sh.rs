@@ -12,6 +12,7 @@ use hex_literal::hex;
 fn tx() -> Transaction {
     Transaction {
         version: 1,
+        flag: None,
         inputs: vec![TxIn {
             txid: hex!("40eee3ae1760e3a8532263678cdf64569e6ad06abc133af64f735e52562bccc8"),
             output_index: 0,
@@ -30,6 +31,7 @@ fn tx() -> Transaction {
                 script_pub_key: StandardScript::P2PKH(hex!("1d30342095961d951d306845ef98ac08474b36a0").to_vec()).into_script(),
             },
         ],
+        witnesses: vec![],
         lock_time: 272295,
     }
 }
