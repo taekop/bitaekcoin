@@ -56,12 +56,12 @@ fn test() {
     );
 
     let locking_script = locking_script();
-    let hash = SigHash::All.hash(&tx, 0, &locking_script);
+    let hash = SigHash::All.hash(&tx, 0, &locking_script, 1990096);
 
     // equal to sha256(sha256(0x0100000001b5f370bbd9a5dd4a3adc52d779d7c7eeb3c5d82a7c8285b2f8a1986e372a874000000000232102d5ddb8c9a2bc17624baa51245ef3c07380f90b2e2f38217307a8a1869508ca01acfeffffff02d75900000000000017a914ea4e30950c2495beba1e75e035bedd55ccfe4c9b874dd51d00000000001976a914676de8484253cd355c37fc51ba34f2e5d62a944088acb69f060001000000))
     assert_eq!(
         hash,
         hex!("1fb32874e31febdd88dcbb6564499864543ad1378e580b68c09ebfe370b50588")
     );
-    assert!(tx.validate(0, &tx.inputs[0].script_sig, &locking_script));
+    assert!(tx.validate(0, &tx.inputs[0].script_sig, &locking_script, 1990096));
 }

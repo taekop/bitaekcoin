@@ -4,8 +4,7 @@ use primitive_types::U256;
 
 use crate::{
     hash::{merkle_root, sha256},
-    script::Script,
-    transaction::{Transaction, TxID},
+    transaction::{Transaction, TxID, TxOut},
 };
 
 pub struct Block {
@@ -14,14 +13,19 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn validate(&self, outpoints: HashMap<(TxID, u32), Script>) -> bool {
+    pub fn validate(&self, outpoints: HashMap<(TxID, u32), TxOut>) -> bool {
         // Validate transactions
         for i in 1..self.transactions.len() {
             let tx = &self.transactions[i];
             for i in 0..tx.inputs.len() {
                 match outpoints.get(&(tx.inputs[i].txid, tx.inputs[i].output_index)) {
-                    Some(locking_script) => {
-                        if !tx.validate(i, &tx.inputs[i].script_sig, locking_script) {
+                    Some(tx_out) => {
+                        if !tx.validate(
+                            i,
+                            &tx.inputs[i].script_sig,
+                            &tx_out.script_pub_key,
+                            tx_out.amount,
+                        ) {
                             return false;
                         }
                     }

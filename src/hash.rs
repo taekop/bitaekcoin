@@ -3,7 +3,10 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     encode::{Encodable, VarInt},
-    script::Script,
+    script::{
+        instruction::{Instruction, PushBytes},
+        Script, StandardScript,
+    },
     transaction::{Transaction, TxID},
 };
 
@@ -40,7 +43,7 @@ pub fn ripemd160(bytes: Vec<u8>) -> [u8; 20] {
     hasher.finalize().into()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum SigHash {
     All,
     None,
@@ -49,9 +52,36 @@ pub enum SigHash {
 }
 
 impl SigHash {
-    pub fn hash(self, tx: &Transaction, input_index: usize, script: &Script) -> [u8; 32] {
+    pub fn hash(
+        self,
+        tx: &Transaction,
+        input_index: usize,
+        script: &Script,
+        amount: u64,
+    ) -> [u8; 32] {
         if tx.is_segwit() {
-            todo!()
+            let hash_prevouts = tx.hash_prevouts(self);
+            let hash_sequence = tx.hash_sequence(self);
+            let hash_outputs = tx.hash_outputs(input_index, self);
+            let script = match script.to_standard() {
+                Some(StandardScript::P2WPKH(pkh)) => Script(vec![Instruction::PushBytes(
+                    PushBytes::Bytes(0x19, StandardScript::P2PKH(pkh).encode()),
+                )]),
+                _ => return [0; 32], // TODO: error handling rather than returning invalid hash
+            };
+            let mut bytes = Vec::new();
+            bytes.extend(tx.version.encode());
+            bytes.extend(hash_prevouts);
+            bytes.extend(hash_sequence);
+            bytes.extend(tx.inputs[input_index].txid.encode());
+            bytes.extend(tx.inputs[input_index].output_index.encode());
+            bytes.extend(script.encode());
+            bytes.extend(amount.encode());
+            bytes.extend(tx.inputs[input_index].sequence.encode());
+            bytes.extend(hash_outputs);
+            bytes.extend(tx.lock_time.encode());
+            bytes.extend(self.to_four_bytes());
+            sha256(sha256(bytes).to_vec())
         } else {
             // TODO: subscript is the entire script only if non-segwit, non-P2SH script without OP_CODESEPARATOR
             let subscript = script;

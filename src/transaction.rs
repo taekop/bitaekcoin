@@ -4,10 +4,11 @@ use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
 use crate::{
     encode::{Encodable, VarInt},
-    hash::{ripemd160, sha256},
+    hash::{ripemd160, sha256, SigHash},
     script::{
         instruction::PushBytes, Script, StandardScript, StandardScriptType, UnlockingStandardScript,
     },
+    utils::signature_sighash,
 };
 
 pub type TxID = [u8; 32];
@@ -48,13 +49,64 @@ impl Transaction {
         self.flag.is_some()
     }
 
-    pub fn validate(&self, ind: usize, unlocking_script: &Script, locking_script: &Script) -> bool {
+    pub fn hash_prevouts(&self, sighash: SigHash) -> [u8; 32] {
+        match sighash {
+            SigHash::AnyoneCanPay => [0; 32],
+            _ => {
+                let mut prevouts = Vec::new();
+                for tx_in in &self.inputs {
+                    prevouts.extend(tx_in.txid.encode());
+                    prevouts.extend(tx_in.output_index.encode());
+                }
+                sha256(sha256(prevouts).to_vec())
+            }
+        }
+    }
+
+    pub fn hash_sequence(&self, sighash: SigHash) -> [u8; 32] {
+        match sighash {
+            SigHash::All => {
+                let mut sequences = Vec::new();
+                for tx_in in &self.inputs {
+                    sequences.extend(tx_in.sequence.encode());
+                }
+                sha256(sha256(sequences).to_vec())
+            }
+            _ => [0; 32],
+        }
+    }
+
+    pub fn hash_outputs(&self, input_index: usize, sighash: SigHash) -> [u8; 32] {
+        match sighash {
+            SigHash::None => [0; 32],
+            SigHash::Single if input_index < self.outputs.len() => {
+                sha256(sha256(self.outputs[input_index].amount.encode()).to_vec())
+            }
+            _ => {
+                let mut outputs = Vec::new();
+                for tx_out in &self.outputs {
+                    outputs.extend(tx_out.amount.encode());
+                    outputs.extend(tx_out.script_size.encode());
+                    outputs.extend(tx_out.script_pub_key.encode());
+                }
+                sha256(sha256(outputs).to_vec())
+            }
+        }
+    }
+
+    pub fn validate(
+        &self,
+        ind: usize,
+        unlocking_script: &Script,
+        locking_script: &Script,
+        amount: u64,
+    ) -> bool {
         match locking_script.to_standard() {
             Some(standard_script) => match standard_script {
                 StandardScript::P2PK(pk) => {
                     match unlocking_script.to_unlocking_standard(StandardScriptType::P2PK) {
                         Some(UnlockingStandardScript::P2PK(signature, sighash)) => {
-                            let hash = sighash.hash(self, ind, locking_script);
+                            let hash = sighash.hash(self, ind, locking_script, amount);
                             if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
                                 verifying_key.verify_prehash(&hash, &signature).is_ok()
                             } else {
@@ -76,7 +128,7 @@ impl Transaction {
                                     return false;
                                 }
                             }
-                            let hash = sighash.hash(self, ind, locking_script);
+                            let hash = sighash.hash(self, ind, locking_script, amount);
                             if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
                                 verifying_key.verify_prehash(&hash, &signature).is_ok()
                             } else {
@@ -94,7 +146,7 @@ impl Transaction {
                             let mut pks = VecDeque::from(pks);
                             while !sigs.is_empty() {
                                 let (signature, sighash) = sigs.pop_front().unwrap();
-                                let hash = sighash.hash(self, ind, locking_script);
+                                let hash = sighash.hash(self, ind, locking_script, amount);
                                 while !pks.is_empty() {
                                     let pk = pks.pop_front().unwrap();
                                     if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
@@ -124,12 +176,44 @@ impl Transaction {
                                     return false;
                                 }
                             }
-                            self.validate(ind, &unlocking_script, &redeem_script)
+                            self.validate(ind, &unlocking_script, &redeem_script, amount)
                         }
                         _ => false,
                     }
                 }
                 StandardScript::NullData(_) => false,
+                StandardScript::P2WPKH(pkh) => {
+                    if !self.is_segwit()
+                        || self.witnesses.len() <= ind
+                        || !unlocking_script.0.is_empty()
+                    {
+                        return false;
+                    }
+                    let witness = self.witnesses[ind].clone();
+                    if witness.0.len() != 2 {
+                        return false;
+                    }
+                    match witness.to_unlocking_standard(StandardScriptType::P2PKH) {
+                        Some(UnlockingStandardScript::P2PKH(signature, sighash, pk)) => {
+                            let pkh2 = ripemd160(sha256(pk.clone()).to_vec());
+                            if pkh.len() != 20 {
+                                return false;
+                            }
+                            for i in 0..20 {
+                                if pkh[i] != pkh2[i] {
+                                    return false;
+                                }
+                            }
+                            let hash = sighash.hash(self, ind, locking_script, amount);
+                            if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
+                                verifying_key.verify_prehash(&hash, &signature).is_ok()
+                            } else {
+                                false
+                            }
+                        }
+                        _ => false,
+                    }
+                }
             },
             None => unimplemented!("NON STANDARD SCRIPT"),
         }
@@ -196,6 +280,29 @@ impl Encodable for TxOut {
 
 #[derive(Debug, Clone)]
 pub struct Witness(pub Vec<PushBytes>);
+
+impl Witness {
+    pub fn to_unlocking_standard(&self, ty: StandardScriptType) -> Option<UnlockingStandardScript> {
+        match ty {
+            StandardScriptType::P2PK => None,
+            StandardScriptType::P2PKH => {
+                if self.0.len() != 2 {
+                    return None;
+                }
+                let sig = self.0[0].bytes();
+                if let Some((signature, sighash)) = signature_sighash(sig) {
+                    let pk = self.0[1].bytes();
+                    Some(UnlockingStandardScript::P2PKH(signature, sighash, pk))
+                } else {
+                    None
+                }
+            }
+            StandardScriptType::P2MS => None,
+            StandardScriptType::P2SH => todo!(),
+            StandardScriptType::NullData => None,
+        }
+    }
+}
 
 impl Encodable for Witness {
     fn encode(&self) -> Vec<u8> {

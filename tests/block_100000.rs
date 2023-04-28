@@ -136,31 +136,49 @@ fn tx4() -> Transaction {
     }
 }
 
-fn prev_outpoints() -> HashMap<(TxID, u32), Script> {
+fn prev_outpoints() -> HashMap<(TxID, u32), TxOut> {
     HashMap::from_iter([
         (
             (
                 hex!("87a157f3fd88ac7907c05fc55e271dc4acdc5605d187d646604ca8c0e9382e03"),
                 0,
             ),
-            StandardScript::P2PKH(hex!("71d7dd96d9edda09180fe9d57a477b5acc9cad11").to_vec())
+            TxOut {
+                amount: 5000000000,
+                script_size: VarInt(25),
+                script_pub_key: StandardScript::P2PKH(
+                    hex!("71d7dd96d9edda09180fe9d57a477b5acc9cad11").to_vec(),
+                )
                 .into_script(),
+            },
         ),
         (
             (
                 hex!("cf4e2978d0611ce46592e02d7e7daf8627a316ab69759a9f3df109a7f2bf3ec3"),
                 1,
             ),
-            StandardScript::P2PKH(hex!("35fbee6a3bf8d99f17724ec54787567393a8a6b1").to_vec())
+            TxOut {
+                amount: 300000000,
+                script_size: VarInt(25),
+                script_pub_key: StandardScript::P2PKH(
+                    hex!("35fbee6a3bf8d99f17724ec54787567393a8a6b1").to_vec(),
+                )
                 .into_script(),
+            },
         ),
         (
             (
                 hex!("f4515fed3dc4a19b90a317b9840c243bac26114cf637522373a7d486b372600b"),
                 0,
             ),
-            StandardScript::P2PKH(hex!("c4eb47ecfdcf609a1848ee79acc2fa49d3caad70").to_vec())
+            TxOut {
+                amount: 1000000,
+                script_size: VarInt(25),
+                script_pub_key: StandardScript::P2PKH(
+                    hex!("c4eb47ecfdcf609a1848ee79acc2fa49d3caad70").to_vec(),
+                )
                 .into_script(),
+            },
         ),
     ])
 }

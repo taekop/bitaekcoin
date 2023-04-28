@@ -41,7 +41,13 @@ impl Script {
         }
         match len {
             2 => {
-                if let Instruction::PushBytes(pb) = &instructions[0] {
+                if instructions[0].opcode() == OP_0 {
+                    if let Instruction::PushBytes(pb) = &instructions[1] {
+                        Some(StandardScript::P2WPKH(pb.bytes()))
+                    } else {
+                        None
+                    }
+                } else if let Instruction::PushBytes(pb) = &instructions[0] {
                     if instructions[1].opcode() == OP_CHECKSIG {
                         Some(StandardScript::P2PK(pb.bytes()))
                     } else {
@@ -239,6 +245,7 @@ pub enum StandardScript {
     P2MS(u8, u8, Vec<Vec<u8>>), // m-of-n with n public keys
     P2SH(Vec<u8>),              // script hash
     NullData(Vec<u8>),          // data
+    P2WPKH(Vec<u8>),            // public key hash
 }
 
 impl StandardScript {
@@ -272,6 +279,10 @@ impl StandardScript {
             StandardScript::NullData(data) => vec![
                 Instruction::Opcode(OP_RETURN),
                 Instruction::PushBytes(PushBytes::from_bytes(data)),
+            ],
+            StandardScript::P2WPKH(pkh) => vec![
+                Instruction::PushBytes(PushBytes::Empty),
+                Instruction::PushBytes(PushBytes::from_bytes(pkh)),
             ],
         };
         Script(instructions)
