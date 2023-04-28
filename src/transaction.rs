@@ -3,10 +3,11 @@ use std::collections::VecDeque;
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
 
 use crate::{
-    encode::{Encodable, VarInt},
+    encode::{Decodable, Encodable, VarInt},
     hash::{ripemd160, sha256, SigHash},
     script::{
-        instruction::PushBytes, Script, StandardScript, StandardScriptType, UnlockingStandardScript,
+        instruction::{Instruction, PushBytes},
+        Script, StandardScript, StandardScriptType, UnlockingStandardScript,
     },
     utils::signature_sighash,
 };
@@ -212,6 +213,42 @@ impl Transaction {
                             }
                         }
                         _ => false,
+                    }
+                }
+                StandardScript::P2WSH(sh) => {
+                    if !self.is_segwit()
+                        || self.witnesses.len() <= ind
+                        || !unlocking_script.0.is_empty()
+                    {
+                        return false;
+                    }
+                    let witness = self.witnesses[ind].clone();
+                    let len = witness.0.len();
+                    if len < 2 {
+                        return false;
+                    }
+                    if let Ok(locking_script) =
+                        Script::decode(&mut witness.0[len - 1].bytes().into())
+                    {
+                        let sh2 = sha256(locking_script.encode());
+                        if sh.len() != 32 {
+                            return false;
+                        }
+                        for i in 0..32 {
+                            if sh[i] != sh2[i] {
+                                return false;
+                            }
+                        }
+                        let unlocking_script = Script(
+                            witness.0[0..len - 1]
+                                .iter()
+                                .cloned()
+                                .map(Instruction::PushBytes)
+                                .collect(),
+                        );
+                        self.validate(ind, &unlocking_script, &locking_script, amount)
+                    } else {
+                        false
                     }
                 }
             },

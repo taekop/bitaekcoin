@@ -67,7 +67,10 @@ impl SigHash {
                 Some(StandardScript::P2WPKH(pkh)) => Script(vec![Instruction::PushBytes(
                     PushBytes::Bytes(0x19, StandardScript::P2PKH(pkh).encode()),
                 )]),
-                _ => return [0; 32], // TODO: error handling rather than returning invalid hash
+                // TODO: handle not-yet-executed OP_CODESEPARATOR
+                _ => Script(vec![Instruction::PushBytes(PushBytes::from_bytes(
+                    script.encode(),
+                ))]),
             };
             let mut bytes = Vec::new();
             bytes.extend(tx.version.encode());

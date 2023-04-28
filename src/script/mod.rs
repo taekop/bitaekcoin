@@ -42,10 +42,14 @@ impl Script {
         match len {
             2 => {
                 if instructions[0].opcode() == OP_0 {
-                    if let Instruction::PushBytes(pb) = &instructions[1] {
-                        Some(StandardScript::P2WPKH(pb.bytes()))
-                    } else {
-                        None
+                    match &instructions[1] {
+                        Instruction::PushBytes(PushBytes::Bytes(20, bytes)) => {
+                            Some(StandardScript::P2WPKH(bytes.clone()))
+                        }
+                        Instruction::PushBytes(PushBytes::Bytes(32, bytes)) => {
+                            Some(StandardScript::P2WSH(bytes.clone()))
+                        }
+                        _ => None,
                     }
                 } else if let Instruction::PushBytes(pb) = &instructions[0] {
                     if instructions[1].opcode() == OP_CHECKSIG {
@@ -246,6 +250,7 @@ pub enum StandardScript {
     P2SH(Vec<u8>),              // script hash
     NullData(Vec<u8>),          // data
     P2WPKH(Vec<u8>),            // public key hash
+    P2WSH(Vec<u8>),             // script hash
 }
 
 impl StandardScript {
@@ -283,6 +288,10 @@ impl StandardScript {
             StandardScript::P2WPKH(pkh) => vec![
                 Instruction::PushBytes(PushBytes::Empty),
                 Instruction::PushBytes(PushBytes::from_bytes(pkh)),
+            ],
+            StandardScript::P2WSH(sh) => vec![
+                Instruction::PushBytes(PushBytes::Empty),
+                Instruction::PushBytes(PushBytes::from_bytes(sh)),
             ],
         };
         Script(instructions)
