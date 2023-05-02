@@ -7,3 +7,7 @@ edition = "2021"
 
 [dependencies]
 bitaekcoin = { path = "../bitaekcoin" }
+jsonrpc-core = "18.0.0"
+jsonrpc-core-client = "18.0.0"
+jsonrpc-derive = "18.0.0"
+jsonrpc-http-server = "18.0.0"
