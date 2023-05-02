@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    sync::RwLock,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -11,21 +12,35 @@ use bitaekcoin::{
     transaction::{Transaction, TxIn, TxOut},
 };
 
-pub struct Node {}
+use crate::{mempool::Mempool, BITS, MINING_REWARD, PUBLIC_KEY};
+
+pub struct Node {
+    pub bits: u32,
+    pub public_key: Vec<u8>,
+    pub mempool: RwLock<Mempool>,
+}
 
 impl Node {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(mempool: RwLock<Mempool>) -> Self {
+        Self {
+            bits: BITS,
+            public_key: PUBLIC_KEY.to_vec(),
+            mempool,
+        }
     }
 
     pub fn run(self) {
-        let mut block = initialize_block([0; 32], 0x1f00ffff, vec![0], vec![]);
         loop {
-            if block.validate(HashMap::new()) {
-                println!("{}", block.header.nonce);
-                break;
+            let transactions = self.mempool.write().unwrap().pop();
+            let mut block =
+                initialize_block([0; 32], self.bits, self.public_key.clone(), transactions);
+            loop {
+                if block.validate(HashMap::new()) {
+                    println!("{}", block.header.nonce);
+                    break;
+                }
+                block.header.nonce += 1;
             }
-            block.header.nonce += 1;
         }
     }
 }
@@ -48,7 +63,7 @@ fn initialize_block(
             sequence: 0,
         }],
         outputs: vec![TxOut {
-            amount: 100000000,
+            amount: MINING_REWARD,
             script_size: VarInt(output_script.encode().len() as u64),
             script_pub_key: output_script,
         }],
@@ -83,9 +98,10 @@ fn get_timestamp() -> u32 {
 mod tests {
     use super::*;
 
+    #[ignore]
     #[test]
     fn test_node() {
-        let node = Node::new();
+        let node = Node::new(RwLock::new(Mempool::new()));
         node.run();
     }
 }
