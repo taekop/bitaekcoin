@@ -12,31 +12,42 @@ use bitaekcoin::{
     transaction::{Transaction, TxIn, TxOut},
 };
 
-use crate::{mempool::Mempool, BITS, MINING_REWARD, PUBLIC_KEY};
+use crate::{database::DB, mempool::Mempool, BITS, MINING_REWARD, PUBLIC_KEY};
 
 pub struct Node {
     pub bits: u32,
     pub public_key: Vec<u8>,
     pub mempool: RwLock<Mempool>,
+    pub db: RwLock<DB>,
 }
 
 impl Node {
-    pub fn new(mempool: RwLock<Mempool>) -> Self {
+    pub fn new(mempool: RwLock<Mempool>, db: RwLock<DB>) -> Self {
         Self {
             bits: BITS,
             public_key: PUBLIC_KEY.to_vec(),
             mempool,
+            db,
         }
     }
 
     pub fn run(self) {
         loop {
+            let block = self.db.read().unwrap().latest_block();
+            let prev_block_hash = match block {
+                Some(block) => block.header.hash(),
+                None => [0; 32],
+            };
             let transactions = self.mempool.write().unwrap().pop();
-            let mut block =
-                initialize_block([0; 32], self.bits, self.public_key.clone(), transactions);
+            let mut block = initialize_block(
+                prev_block_hash,
+                self.bits,
+                self.public_key.clone(),
+                transactions,
+            );
             loop {
                 if block.validate(HashMap::new()) {
-                    println!("{}", block.header.nonce);
+                    self.db.write().unwrap().push_block(block);
                     break;
                 }
                 block.header.nonce += 1;
@@ -101,7 +112,7 @@ mod tests {
     #[ignore]
     #[test]
     fn test_node() {
-        let node = Node::new(RwLock::new(Mempool::new()));
+        let node = Node::new(RwLock::new(Mempool::new()), RwLock::new(DB::new()));
         node.run();
     }
 }

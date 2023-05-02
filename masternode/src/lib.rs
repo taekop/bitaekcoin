@@ -1,5 +1,6 @@
 use hex_literal::hex;
 
+pub mod database;
 pub mod mempool;
 pub mod node;
 pub mod server;
