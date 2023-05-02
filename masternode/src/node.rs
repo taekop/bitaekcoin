@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::RwLock,
+    sync::{Arc, RwLock},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -17,12 +17,12 @@ use crate::{database::DB, mempool::Mempool, BITS, MINING_REWARD, PUBLIC_KEY};
 pub struct Node {
     pub bits: u32,
     pub public_key: Vec<u8>,
-    pub mempool: RwLock<Mempool>,
-    pub db: RwLock<DB>,
+    pub mempool: Arc<RwLock<Mempool>>,
+    pub db: Arc<RwLock<DB>>,
 }
 
 impl Node {
-    pub fn new(mempool: RwLock<Mempool>, db: RwLock<DB>) -> Self {
+    pub fn new(mempool: Arc<RwLock<Mempool>>, db: Arc<RwLock<DB>>) -> Self {
         Self {
             bits: BITS,
             public_key: PUBLIC_KEY.to_vec(),
@@ -112,7 +112,10 @@ mod tests {
     #[ignore]
     #[test]
     fn test_node() {
-        let node = Node::new(RwLock::new(Mempool::new()), RwLock::new(DB::new()));
+        let node = Node::new(
+            Arc::new(RwLock::new(Mempool::new())),
+            Arc::new(RwLock::new(DB::new())),
+        );
         node.run();
     }
 }
