@@ -20,8 +20,11 @@ impl Block {
         for i in 1..self.transactions.len() {
             let tx = &self.transactions[i];
             for i in 0..tx.inputs.len() {
+                let sum_in: u64 = tx.outputs.iter().map(|tx_out| tx_out.amount).sum();
+                let mut sum_out = 0;
                 match outpoints.get(&(tx.inputs[i].txid, tx.inputs[i].output_index)) {
                     Some(tx_out) => {
+                        sum_out += tx_out.amount;
                         if !tx.validate(
                             i,
                             &tx.inputs[i].script_sig,
@@ -32,6 +35,9 @@ impl Block {
                         }
                     }
                     None => return false,
+                }
+                if sum_in < sum_out {
+                    return false;
                 }
             }
         }
