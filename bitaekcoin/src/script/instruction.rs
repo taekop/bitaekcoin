@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::encode::Encodable;
 
 pub const OP_0: u8 = 0x00;
@@ -15,7 +17,7 @@ pub const OP_CODESEPARATOR: u8 = 0xab;
 pub const OP_CHECKSIG: u8 = 0xac;
 pub const OP_CHECKMULTISIG: u8 = 0xae;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Instruction {
     Opcode(u8),
     PushBytes(PushBytes),
@@ -54,7 +56,7 @@ impl Encodable for Instruction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PushBytes {
     Empty,
     Bytes(u8, Vec<u8>),

@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use k256::ecdsa::{signature::hazmat::PrehashVerifier, VerifyingKey};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     encode::{Decodable, Encodable, VarInt},
@@ -14,7 +15,7 @@ use crate::{
 
 pub type TxID = [u8; 32];
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub version: u32,
     pub flag: Option<u8>,
@@ -304,7 +305,7 @@ impl Encodable for Transaction {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxIn {
     pub txid: TxID,
     pub output_index: u32,
@@ -325,7 +326,7 @@ impl Encodable for TxIn {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxOut {
     pub amount: u64,
     pub script_size: VarInt,
@@ -342,7 +343,7 @@ impl Encodable for TxOut {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Witness(pub Vec<PushBytes>);
 
 impl Witness {

@@ -10,8 +10,9 @@ pub mod instruction;
 
 use instruction::*;
 use k256::ecdsa::Signature;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Script(pub Vec<Instruction>);
 
 impl Script {

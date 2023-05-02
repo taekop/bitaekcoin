@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use serde::{Deserialize, Serialize};
+
 use crate::utils::pop_front;
 
 pub trait Encodable {
@@ -46,7 +48,7 @@ impl<T: Encodable> Encodable for Vec<T> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VarInt(pub u64);
 
 impl Encodable for VarInt {
