@@ -8,7 +8,7 @@ use crate::{
     transaction::{Transaction, TxID, TxOut},
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
     pub header: BlockHeader,
     pub transactions: Vec<Transaction>,
@@ -53,7 +53,7 @@ impl Block {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockHeader {
     pub version: u32,
     pub prev_block_hash: [u8; 32],
