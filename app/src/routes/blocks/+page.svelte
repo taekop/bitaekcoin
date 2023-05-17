@@ -88,6 +88,7 @@
             rgba(0, 0, 0, 0.12) 0px 1px 5px 0px;
         padding: 16px;
         padding-inline: 16px;
+        margin: 16px;
     }
 
     .block-card-header {

@@ -33,6 +33,7 @@
 	header {
 		width: 300px;
 		height: 100%;
+		min-height: 1000px;
 		display: flex;
 		flex-direction: column;
 		justify-content: start;

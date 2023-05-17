@@ -29,6 +29,10 @@
 		flex-direction: row;
 	}
 
+	main {
+		width: 100%;
+	}
+
 	footer {
 		display: flex;
 		flex-direction: column;
