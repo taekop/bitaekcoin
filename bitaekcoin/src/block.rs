@@ -55,6 +55,7 @@ impl Block {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockHeader {
+    pub height: u64,
     pub version: u32,
     pub prev_block_hash: [u8; 32],
     pub merkle_root: [u8; 32],
@@ -113,6 +114,7 @@ mod tests {
     pub fn test_validate() {
         // https://blockchair.com/bitcoin/block/200000
         let block_header = BlockHeader {
+            height: 200000,
             version: 2,
             prev_block_hash: hex!(
                 "00000000000003a20def7a05a77361b9657ff954b2f2080e135ea6f5970da215"

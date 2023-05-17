@@ -13,3 +13,5 @@ jsonrpc-core-client = "18.0.0"
 jsonrpc-derive = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 k256 = "0.13.1"
+rand = "0.8.5"
+serde = { version = "1.0.160", features = ["derive"] }

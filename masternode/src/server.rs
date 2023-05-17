@@ -5,12 +5,18 @@ use jsonrpc_core::{Error, IoHandler, Result};
 use jsonrpc_derive::rpc;
 use jsonrpc_http_server::ServerBuilder;
 
-use crate::{database::DB, mempool::Mempool};
+use crate::{account::AccountJson, database::DB, mempool::Mempool};
 
 #[rpc]
 pub trait Rpc {
+    #[rpc(name = "getBlocks")]
+    fn get_blocks(&self) -> Result<Vec<Block>>;
+
     #[rpc(name = "getLatestBlock")]
     fn get_latest_block(&self) -> Result<Block>;
+
+    #[rpc(name = "getAccounts")]
+    fn get_accounts(&self) -> Result<Vec<AccountJson>>;
 }
 
 struct RpcImpl {
@@ -19,11 +25,28 @@ struct RpcImpl {
 }
 
 impl Rpc for RpcImpl {
+    fn get_blocks(&self) -> Result<Vec<Block>> {
+        let mut blocks = self.db.read().unwrap().blocks();
+        blocks.reverse();
+        Ok(blocks)
+    }
+
     fn get_latest_block(&self) -> Result<Block> {
         match self.db.read().unwrap().latest_block() {
             Some(block) => Ok(block),
             None => Err(Error::internal_error()),
         }
+    }
+
+    fn get_accounts(&self) -> Result<Vec<AccountJson>> {
+        Ok(self
+            .db
+            .read()
+            .unwrap()
+            .accounts()
+            .into_iter()
+            .map(|a| a.into())
+            .collect())
     }
 }
 

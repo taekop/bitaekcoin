@@ -34,12 +34,13 @@ impl Node {
     pub fn run(self) {
         loop {
             let block = self.db.read().unwrap().latest_block();
-            let prev_block_hash = match block {
-                Some(block) => block.header.hash(),
-                None => [0; 32],
+            let (height, prev_block_hash) = match block {
+                Some(block) => (block.header.height + 1, block.header.hash()),
+                None => (0, [0; 32]),
             };
             let transactions = self.mempool.write().unwrap().pop();
             let mut block = initialize_block(
+                height,
                 prev_block_hash,
                 self.bits,
                 self.public_key.clone(),
@@ -57,6 +58,7 @@ impl Node {
 }
 
 fn initialize_block(
+    height: u64,
     prev_block_hash: [u8; 32],
     bits: u32,
     miner_pk: Vec<u8>,
@@ -87,6 +89,7 @@ fn initialize_block(
     let merkle_root = merkle_root(txids);
     Block {
         header: BlockHeader {
+            height,
             version: 1,
             prev_block_hash,
             merkle_root,

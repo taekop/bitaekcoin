@@ -1,10 +1,28 @@
 <script>
-    let accounts = [
-        {
-            index: 0,
-            balance: 1000,
-        },
-    ];
+    let accounts = [];
+
+    import { onMount } from "svelte";
+
+    onMount(async () => {
+        fetch("http://0.0.0.0:8000", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: 1,
+                jsonrpc: "2.0",
+                method: "getAccounts",
+            }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                accounts = data.result;
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    });
 </script>
 
 <div class="account-container">

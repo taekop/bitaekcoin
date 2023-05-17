@@ -15,6 +15,7 @@ use hex_literal::hex;
 fn block() -> Block {
     Block {
         header: BlockHeader {
+            height: 100000,
             version: 1,
             prev_block_hash: hex!(
                 "000000000002d01c1fccc21636b607dfd930d31d01c3a62104612a1719011250"
