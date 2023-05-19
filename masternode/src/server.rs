@@ -17,6 +17,9 @@ pub trait Rpc {
 
     #[rpc(name = "getAccounts")]
     fn get_accounts(&self) -> Result<Vec<AccountJson>>;
+
+    #[rpc(name = "createAccount")]
+    fn create_account(&self) -> Result<AccountJson>;
 }
 
 struct RpcImpl {
@@ -47,6 +50,10 @@ impl Rpc for RpcImpl {
             .into_iter()
             .map(|a| a.into())
             .collect())
+    }
+
+    fn create_account(&self) -> Result<AccountJson> {
+        Ok(self.db.write().unwrap().create_account().into())
     }
 }
 

@@ -50,7 +50,7 @@ impl DB {
         self.blocks.last().cloned()
     }
 
-    pub fn create_account(&mut self) {
+    pub fn create_account(&mut self) -> Account {
         let index = self.accounts.len();
         let account = Account::new(
             index,
@@ -58,7 +58,8 @@ impl DB {
                 .to_bytes()
                 .to_vec(),
         );
-        self.accounts.push(account);
+        self.accounts.push(account.clone());
+        account
     }
 
     pub fn accounts(&self) -> Vec<Account> {
