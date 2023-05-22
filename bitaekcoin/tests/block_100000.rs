@@ -188,5 +188,5 @@ fn prev_outpoints() -> HashMap<(TxID, u32), TxOut> {
 fn test() {
     let block = block();
     let outpoints = prev_outpoints();
-    assert!(block.validate(outpoints));
+    assert!(block.validate(&outpoints));
 }

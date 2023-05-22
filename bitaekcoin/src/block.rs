@@ -15,7 +15,18 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn validate(&self, outpoints: HashMap<(TxID, u32), TxOut>) -> bool {
+    pub fn validate(&self, outpoints: &HashMap<(TxID, u32), TxOut>) -> bool {
+        // Validate Block Hash
+        if !self.header.validate() {
+            return false;
+        }
+
+        // Validate Merkle Root
+        let txids = self.transactions.iter().map(|tx| tx.txid()).collect();
+        if self.header.merkle_root != merkle_root(txids) {
+            return false;
+        }
+
         // Validate transactions
         for i in 1..self.transactions.len() {
             let tx = &self.transactions[i];
@@ -42,14 +53,7 @@ impl Block {
             }
         }
 
-        // Validate Merkle Root
-        let txids = self.transactions.iter().map(|tx| tx.txid()).collect();
-        if self.header.merkle_root != merkle_root(txids) {
-            return false;
-        }
-
-        // Validate Block Hash
-        self.header.validate()
+        true
     }
 }
 

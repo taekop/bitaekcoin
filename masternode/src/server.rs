@@ -20,6 +20,9 @@ pub trait Rpc {
 
     #[rpc(name = "createAccount")]
     fn create_account(&self) -> Result<AccountJson>;
+
+    #[rpc(name = "transfer")]
+    fn transfer(&self, from: usize, to: usize, amount: u64) -> Result<()>;
 }
 
 struct RpcImpl {
@@ -54,6 +57,20 @@ impl Rpc for RpcImpl {
 
     fn create_account(&self) -> Result<AccountJson> {
         Ok(self.db.write().unwrap().create_account().into())
+    }
+
+    fn transfer(&self, from: usize, to: usize, amount: u64) -> Result<()> {
+        let accounts = self.db.read().unwrap().accounts();
+        if from >= accounts.len() || to >= accounts.len() {
+            return Err(Error::invalid_request());
+        }
+        match accounts[from].transfer(&accounts[to].public_key, amount) {
+            Ok(tx) => match self.mempool.write().unwrap().push(tx) {
+                Ok(_) => Ok(()),
+                Err(_) => Err(Error::invalid_request()),
+            },
+            Err(_) => Err(Error::invalid_request()),
+        }
     }
 }
 

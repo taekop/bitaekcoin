@@ -113,6 +113,15 @@ impl SigHash {
         }
     }
 
+    pub fn to_byte(self) -> u8 {
+        match self {
+            SigHash::All => 1,
+            SigHash::None => 2,
+            SigHash::Single => 3,
+            SigHash::AnyoneCanPay => 0x80,
+        }
+    }
+
     pub fn to_four_bytes(self) -> [u8; 4] {
         let value = match self {
             SigHash::All => 1u32,

@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     sync::{Arc, RwLock},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -46,8 +45,9 @@ impl Node {
                 self.public_key.clone(),
                 transactions,
             );
+            let utxos = self.db.read().unwrap().utxos.clone();
             loop {
-                if block.validate(HashMap::new()) {
+                if block.validate(&utxos) {
                     self.db.write().unwrap().push_block(block);
                     break;
                 }
@@ -110,6 +110,10 @@ fn get_timestamp() -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use crate::{account::Account, PRIVATE_KEY};
+
     use super::*;
 
     #[ignore]
@@ -120,5 +124,32 @@ mod tests {
             Arc::new(RwLock::new(DB::new())),
         );
         node.run();
+    }
+
+    #[test]
+    fn test_transfer() {
+        let mut sender = Account::new(0, PRIVATE_KEY.to_vec());
+        let receiver = Account::random(1);
+
+        let locking_script =
+            StandardScript::P2PK(sender.public_key.to_sec1_bytes().to_vec()).into_script();
+        let utxos = {
+            HashMap::from_iter([(
+                ([0; 32], 0),
+                TxOut {
+                    amount: 1,
+                    script_size: VarInt(locking_script.encode().len() as u64),
+                    script_pub_key: locking_script.clone(),
+                },
+            )])
+        };
+        sender.balance = 1;
+        sender.utxos = utxos.clone();
+        let tx = sender.transfer(&receiver.public_key, 1).unwrap();
+        assert!(tx.validate(0, &tx.inputs[0].script_sig, &locking_script, 1));
+
+        let transactions = vec![tx];
+        let block = initialize_block(0, [0; 32], 0x03000000, PUBLIC_KEY.to_vec(), transactions);
+        assert!(block.validate(&utxos));
     }
 }

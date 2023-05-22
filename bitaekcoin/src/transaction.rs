@@ -108,7 +108,7 @@ impl Transaction {
                 StandardScript::P2PK(pk) => {
                     match unlocking_script.to_unlocking_standard(StandardScriptType::P2PK) {
                         Some(UnlockingStandardScript::P2PK(signature, sighash)) => {
-                            let hash = sighash.hash(self, ind, locking_script, amount);
+                            let hash: [u8; 32] = sighash.hash(self, ind, locking_script, amount);
                             if let Ok(verifying_key) = VerifyingKey::from_sec1_bytes(&pk) {
                                 verifying_key.verify_prehash(&hash, &signature).is_ok()
                             } else {
@@ -116,6 +116,7 @@ impl Transaction {
                             }
                         }
                         _ => false,
+                        
                     }
                 }
                 StandardScript::P2PKH(pkh) => {

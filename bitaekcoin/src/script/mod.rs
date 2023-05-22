@@ -312,3 +312,41 @@ pub enum UnlockingStandardScript {
     P2MS(Vec<(Signature, SigHash)>),
     P2SH(Script, Script),
 }
+
+impl UnlockingStandardScript {
+    pub fn into_script(&self) -> Script {
+        match self {
+            UnlockingStandardScript::P2PK(signature, sighash) => {
+                let mut bytes = signature.to_der().as_bytes().to_vec();
+                bytes.push(sighash.to_byte());
+                Script(vec![Instruction::PushBytes(PushBytes::from_bytes(bytes))])
+            }
+            UnlockingStandardScript::P2PKH(signature, sighash, pubkey) => {
+                let mut bytes = signature.to_der().as_bytes().to_vec();
+                bytes.push(sighash.to_byte());
+                Script(vec![
+                    Instruction::PushBytes(PushBytes::from_bytes(bytes)),
+                    Instruction::PushBytes(PushBytes::from_bytes(pubkey.clone())),
+                ])
+            }
+            UnlockingStandardScript::P2MS(multisig) => {
+                let mut instructions = vec![Instruction::Opcode(0)];
+                for (signature, sighash) in multisig {
+                    let mut bytes = signature.to_der().as_bytes().to_vec();
+                    bytes.push(sighash.to_byte());
+                    let instruction = Instruction::PushBytes(PushBytes::from_bytes(bytes));
+                    instructions.push(instruction);
+                }
+                Script(instructions)
+            }
+            UnlockingStandardScript::P2SH(unlocking_script, redeem_script) => {
+                let mut instructions = vec![Instruction::Opcode(0)];
+                instructions.extend(unlocking_script.0.clone());
+                instructions.push(Instruction::PushBytes(PushBytes::from_bytes(
+                    redeem_script.encode(),
+                )));
+                Script(instructions)
+            }
+        }
+    }
+}

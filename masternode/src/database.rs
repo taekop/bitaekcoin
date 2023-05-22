@@ -5,7 +5,6 @@ use bitaekcoin::{
     script::StandardScript,
     transaction::{TxID, TxOut},
 };
-use k256::ecdsa::SigningKey;
 
 use crate::{account::Account, PRIVATE_KEY};
 
@@ -27,16 +26,24 @@ impl DB {
 
     pub fn push_block(&mut self, block: Block) {
         for tx in &block.transactions {
+            let txid = tx.txid();
             for tx_in in &tx.inputs {
                 if tx_in.txid != [0; 32] {
-                    let utxo = self.utxos.get(&(tx_in.txid, tx_in.output_index)).unwrap();
-                    let pubkey = unwrap_utxo_p2pk(utxo);
-                    self.account_by_pubkey(pubkey).balance -= utxo.amount;
+                    let (pubkey, amount) = {
+                        let utxo = self.utxos.get(&(tx_in.txid, tx_in.output_index)).unwrap();
+                        (unwrap_utxo_p2pk(utxo), utxo.amount)
+                    };
+                    let account = self.account_by_pubkey(pubkey);
+                    account.balance -= amount;
+                    account.utxos.remove(&(tx_in.txid, tx_in.output_index));
                 }
             }
-            for tx_out in &tx.outputs {
+            for (i, tx_out) in tx.outputs.iter().enumerate() {
                 let pubkey = unwrap_utxo_p2pk(tx_out);
-                self.account_by_pubkey(pubkey).balance += tx_out.amount;
+                let account = self.account_by_pubkey(pubkey);
+                account.balance += tx_out.amount;
+                account.utxos.insert((txid, i as u32), tx_out.clone());
+                self.utxos.insert((txid, i as u32), tx_out.clone());
             }
         }
         self.blocks.push(block);
@@ -52,12 +59,7 @@ impl DB {
 
     pub fn create_account(&mut self) -> Account {
         let index = self.accounts.len();
-        let account = Account::new(
-            index,
-            SigningKey::random(&mut rand::thread_rng())
-                .to_bytes()
-                .to_vec(),
-        );
+        let account = Account::random(index);
         self.accounts.push(account.clone());
         account
     }
