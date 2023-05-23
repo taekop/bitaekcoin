@@ -1,14 +1,24 @@
 <script>
     import { blockStore } from "$lib/stores/block.js";
+    import Pagination from "$lib/components/Pagination.svelte";
 
     let blocks;
     blockStore.subscribe((value) => {
         blocks = value;
     });
+
+    const perPage = 10;
+    let currentPage;
+    $: visibleBlocks = blocks.filter(
+        (_, i) => (currentPage - 1) * perPage <= i && i < currentPage * perPage
+    );
 </script>
 
 <div class="blocks-body">
-    {#each blocks as block}
+    <div class="pagination-container">
+        <Pagination totalRows={blocks.length} {perPage} bind:currentPage />
+    </div>
+    {#each visibleBlocks as block}
         <div class="block-card">
             <div class="block-card-header">Block #{block.header.height}</div>
             <div class="block-card-body">
