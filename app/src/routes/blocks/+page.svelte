@@ -1,33 +1,15 @@
 <script>
-    let blocks = [];
+    import { blockStore } from "$lib/stores/block.js";
 
-    import { onMount } from "svelte";
-
-    onMount(async () => {
-        fetch("http://0.0.0.0:8000", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                id: 1,
-                jsonrpc: "2.0",
-                method: "getBlocks",
-            }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                blocks = data.result;
-            })
-            .catch((error) => {
-                console.log(error);
-            });
+    let blocks;
+    blockStore.subscribe((value) => {
+        blocks = value;
     });
 </script>
 
-<div class="block-container">
+<div class="blocks-body">
     {#each blocks as block}
-        <div class="card">
+        <div class="block-card">
             <div class="block-card-header">Block #{block.header.height}</div>
             <div class="block-card-body">
                 {block.transactions.length} transactions
@@ -40,17 +22,24 @@
 </div>
 
 <style>
-    .block-container {
+    .blocks-body {
         width: 100%;
+        padding: 32px;
+        box-sizing: border-box;
     }
 
-    .card {
+    .block-card {
         box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 1px -2px,
             rgba(0, 0, 0, 0.14) 0px 2px 2px 0px,
             rgba(0, 0, 0, 0.12) 0px 1px 5px 0px;
         padding: 16px;
         padding-inline: 16px;
-        margin: 16px;
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+
+    .block-card:hover {
+        background-color: #eee;
     }
 
     .block-card-header {
@@ -61,8 +50,13 @@
     }
 
     .block-card-body {
-        font-size: 20px;
+        color: rgb(115, 115, 115);
         margin: 10px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 20px;
     }
 
     .block-card-footer {

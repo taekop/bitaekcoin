@@ -41,4 +41,4 @@ function id() {
     return '_' + Math.random().toString(36);
 };
 
-export const notifications = createNotificationStore();
+export const notificationStore = createNotificationStore();

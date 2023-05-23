@@ -1,37 +1,19 @@
 <script>
-    import { onMount } from "svelte";
     import { slide } from "svelte/transition";
     import IoIosSend from "svelte-icons/io/IoIosSend.svelte";
 
+    import { accountStore } from "$lib/stores/account.js";
+    import { notificationStore } from "$lib/stores/notification.js";
     import plus from "$lib/images/plus.png";
-    import { notifications } from "$lib/stores/notifications.js";
 
-    let accounts = [];
-    let visible = null;
+    let accounts;
+    accountStore.subscribe((value) => {
+        accounts = value;
+    });
 
     let transferFrom;
     let transferTo;
     let transferAmount;
-
-    onMount(async () => {
-        let response = await fetch("http://0.0.0.0:8000", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                id: 1,
-                jsonrpc: "2.0",
-                method: "getAccounts",
-            }),
-        });
-        let data = await response.json();
-        if ("error" in data) {
-            console.log(data.error.message);
-        } else {
-            accounts = data.result;
-        }
-    });
 
     async function createAccount() {
         let response = await fetch("http://0.0.0.0:8000", {
@@ -47,9 +29,9 @@
         });
         let data = await response.json();
         if ("error" in data) {
-            notifications.danger(data.error.message, 1000);
+            notificationStore.danger(data.error.message, 1000);
         } else {
-            notifications.success(
+            notificationStore.success(
                 `Account #${data.result.index} created.`,
                 1000
             );
@@ -57,13 +39,12 @@
     }
 
     function renderTransfer(i) {
-        if (visible === i) {
-            visible = null;
+        transferTo = null;
+        transferAmount = "";
+        if (transferFrom === i) {
+            transferFrom = null;
         } else {
             transferFrom = i;
-            transferTo = null;
-            transferAmount = "";
-            visible = i;
         }
     }
 
@@ -82,9 +63,9 @@
         });
         let data = await response.json();
         if ("error" in data) {
-            notifications.danger(data.error.message, 1000);
+            notificationStore.danger(data.error.message, 1000);
         } else {
-            notifications.success(
+            notificationStore.success(
                 `Transaction sent! Send ${transferAmount} from ${transferFrom} to ${transferTo}.`,
                 1000
             );
@@ -100,7 +81,7 @@
         </button>
     </div>
     {#each accounts as account}
-        <div class="account-card">
+        <div class="account-card" transition:slide|local>
             <div class="account-card-header">Account #{account.index}</div>
             <div class="account-card-body">
                 {(account.balance / 1000000000).toFixed(9)} BTC ({account.balance}
@@ -112,7 +93,7 @@
                 >
             </div>
         </div>
-        {#if visible === account.index}
+        {#if transferFrom === account.index}
             <div
                 class="transfer-card"
                 id="transfer-card-{account.index}"
