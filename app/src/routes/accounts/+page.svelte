@@ -4,6 +4,7 @@
     import IoIosSend from "svelte-icons/io/IoIosSend.svelte";
 
     import plus from "$lib/images/plus.png";
+    import { notifications } from "$lib/stores/notifications.js";
 
     let accounts = [];
     let visible = null;
@@ -46,7 +47,12 @@
         });
         let data = await response.json();
         if ("error" in data) {
-            console.log(data.error.message);
+            notifications.danger(data.error.message, 1000);
+        } else {
+            notifications.success(
+                `Account #${data.result.index} created.`,
+                1000
+            );
         }
     }
 
@@ -76,7 +82,12 @@
         });
         let data = await response.json();
         if ("error" in data) {
-            console.log(data.error.message);
+            notifications.danger(data.error.message, 1000);
+        } else {
+            notifications.success(
+                `Transaction sent! Send ${transferAmount} from ${transferFrom} to ${transferTo}.`,
+                1000
+            );
         }
     }
 </script>
@@ -107,7 +118,7 @@
                 id="transfer-card-{account.index}"
                 transition:slide
             >
-                <form class="transfer-form" on:submit={transfer}>
+                <div class="transfer-form">
                     <table>
                         <tr>
                             <th>From</th>
@@ -146,8 +157,9 @@
                             <td>
                                 <button
                                     class="transfer-submit"
-                                    disabled={!parseInt(transferAmount)}
-                                    type="submit"
+                                    disabled={!parseInt(transferAmount) ||
+                                        !parseInt(transferTo)}
+                                    on:click={transfer}
                                 >
                                     Submit!
                                     <i class="ico">
@@ -157,7 +169,7 @@
                             </td>
                         </tr>
                     </table>
-                </form>
+                </div>
             </div>
         {/if}
     {/each}
@@ -397,40 +409,39 @@
     }
 
     .transfer-submit {
-        transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
         font-size: 1em;
         padding: 10px 40px 10px 20px;
-        background-color: #e94751;
+        background-color: #b4363f;
         color: #fff;
         border-radius: 50px;
         margin-left: 30px;
-        border: 1px solid #e94751;
+        border: 1px solid #b4363f;
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
     }
 
-    .transfer-submit:hover {
+    .transfer-submit:enabled {
+        transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: #e94751;
+        border: 1px solid #e94751;
+    }
+
+    .transfer-submit:enabled:hover {
         transform: scale(1.05);
         background-color: transparent;
         color: #e94751;
         border: 2px solid #e94751;
     }
 
-    .transfer-submit:hover .ico {
+    .transfer-submit:enabled:hover .ico {
         background-color: #e94751;
         color: white;
         transform: rotate(360deg);
     }
 
-    .transfer-submit:active {
-        background-color: #e94751;
-        color: white;
-    }
-
-    .ico {
-        transition: all 0.5s;
+    .transfer-submit .ico {
         background-color: white;
         color: #e94751;
         width: 20px;
@@ -439,5 +450,9 @@
         border-radius: 10px;
         position: absolute;
         margin-left: 90px;
+    }
+
+    .transfer-submit:enabled .ico {
+        transition: all 0.5s;
     }
 </style>

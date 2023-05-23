@@ -1,5 +1,6 @@
 <script>
-	import Sidebar from "./Sidebar.svelte";
+	import Sidebar from "$lib/components/Sidebar.svelte";
+	import Toast from "$lib/components/Toast.svelte";
 </script>
 
 <div class="app">
@@ -16,6 +17,8 @@
 			visit <a href="https://github.com/taekop/bitaekcoin">bitaekcoin</a>
 		</p>
 	</footer>
+
+	<Toast />
 </div>
 
 <style>
