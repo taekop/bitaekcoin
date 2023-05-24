@@ -32,26 +32,28 @@
 </script>
 
 <div class="pagination">
-    <button
-        class="btn-nav left-btn"
-        disabled={currentPage === 1 ? true : false}
-        on:click={() => (currentPage -= 1)}
-    >
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="left-icon"
+    <div class="left-btn-container">
+        <button
+            class="btn-nav left-btn"
+            disabled={currentPage === 1 ? true : false}
+            on:click={() => (currentPage -= 1)}
         >
-            <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M15.75 19.5L8.25 12l7.5-7.5"
-            />
-        </svg>
-    </button>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="left-icon"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 19.5L8.25 12l7.5-7.5"
+                />
+            </svg>
+        </button>
+    </div>
     <div class="page-numbers">
         {#each visiblePages as page}
             {#if page === "dots"}
@@ -65,26 +67,28 @@
             {/if}
         {/each}
     </div>
-    <button
-        class="btn-nav right-btn"
-        disabled={currentPage === totalPages ? true : false}
-        on:click={() => (currentPage += 1)}
-    >
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-            class="right-icon"
+    <div class="right-btn-container">
+        <button
+            class="btn-nav right-btn"
+            disabled={currentPage === totalPages ? true : false}
+            on:click={() => (currentPage += 1)}
         >
-            <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8.25 4.5l7.5 7.5-7.5 7.5"
-            />
-        </svg>
-    </button>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="right-icon"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                />
+            </svg>
+        </button>
+    </div>
 </div>
 
 <style>
@@ -95,11 +99,28 @@
     }
 
     button:disabled {
-        background-color: #087f5b;
+        border: 1.5px solid #acacac;
+        background-color: #acacac;
         color: white;
     }
 
-    .pagination,
+    .pagination {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .left-btn-container {
+        display: flex;
+        justify-content: end;
+        align-items: center;
+    }
+
+    .right-btn-container {
+        display: flex;
+        justify-content: start;
+        align-items: center;
+    }
+
     .page-numbers {
         display: flex;
         align-items: center;
@@ -115,19 +136,15 @@
     }
 
     .btn-nav {
-        padding: 8px;
-    }
-
-    .btn-nav {
         width: 42px;
         height: 42px;
-        border: 1.5px solid #087f5b;
-        color: #087f5b;
+        border: 1.5px solid #0db482;
+        color: #0db482;
     }
 
     .btn-nav:enabled:hover,
     .btn-page:enabled:hover {
-        background-color: #087f5b;
+        background-color: #0db482;
         color: #fff;
     }
 
@@ -139,7 +156,7 @@
     }
 
     .btn-selected {
-        background-color: #087f5b;
+        background-color: #0db482;
         color: #fff;
     }
 </style>

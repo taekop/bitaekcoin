@@ -97,7 +97,7 @@
             <div
                 class="transfer-card"
                 id="transfer-card-{account.index}"
-                transition:slide
+                in:slide
             >
                 <div class="transfer-form">
                     <table>
@@ -143,7 +143,7 @@
                                     on:click={transfer}
                                 >
                                     Submit!
-                                    <i class="ico">
+                                    <i class="ico" out:slide>
                                         <IoIosSend />
                                     </i>
                                 </button>
