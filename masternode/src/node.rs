@@ -149,7 +149,7 @@ mod tests {
         assert!(tx.validate(0, &tx.inputs[0].script_sig, &locking_script, 1));
 
         let transactions = vec![tx];
-        let block = initialize_block(0, [0; 32], 0x03000000, PUBLIC_KEY.to_vec(), transactions);
+        let block = initialize_block(0, [0; 32], 0x22ffffff, PUBLIC_KEY.to_vec(), transactions);
         assert!(block.validate(&utxos));
     }
 }
