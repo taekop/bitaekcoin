@@ -1,6 +1,6 @@
 import { writable } from "svelte/store"
 
-export const accountStore = writable([], function start(set) {
+export const mempoolStore = writable({ transactions: [] }, function start(set) {
     const interval = setInterval(async () => {
         let response = await fetch("http://0.0.0.0:8000", {
             method: "POST",
@@ -10,7 +10,7 @@ export const accountStore = writable([], function start(set) {
             body: JSON.stringify({
                 id: 1,
                 jsonrpc: "2.0",
-                method: "getAccounts",
+                method: "getMempool",
             }),
         });
         let data = await response.json();

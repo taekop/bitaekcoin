@@ -19,7 +19,7 @@ export const blockStore = writable([], function start(set) {
         } else {
             set(data.result);
         }
-    }, 1000);
+    }, 100);
 
     return function stop() {
         clearInterval(interval);

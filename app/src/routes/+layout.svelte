@@ -1,4 +1,5 @@
 <script>
+	import Pending from "$lib/components/Pending.svelte";
 	import Sidebar from "$lib/components/Sidebar.svelte";
 	import Toast from "$lib/components/Toast.svelte";
 </script>
@@ -6,6 +7,7 @@
 <div class="app">
 	<div class="app-top">
 		<Sidebar />
+		<Pending />
 
 		<main>
 			<slot />

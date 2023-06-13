@@ -1,6 +1,4 @@
 <script>
-	import { page } from "$app/stores";
-
 	import account from "$lib/images/account.svg";
 	import block from "$lib/images/block.svg";
 	import logo from "$lib/images/logo.svg";

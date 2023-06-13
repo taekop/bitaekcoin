@@ -23,6 +23,9 @@ pub trait Rpc {
 
     #[rpc(name = "transfer")]
     fn transfer(&self, from: usize, to: usize, amount: u64) -> Result<()>;
+
+    #[rpc(name = "getMempool")]
+    fn get_mempool(&self) -> Result<Mempool>;
 }
 
 struct RpcImpl {
@@ -71,6 +74,10 @@ impl Rpc for RpcImpl {
             },
             Err(_) => Err(Error::invalid_request()),
         }
+    }
+
+    fn get_mempool(&self) -> Result<Mempool> {
+        Ok(self.mempool.read().unwrap().clone())
     }
 }
 

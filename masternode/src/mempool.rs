@@ -1,7 +1,9 @@
 use std::collections::{HashSet, VecDeque};
 
 use bitaekcoin::transaction::Transaction;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mempool {
     pub transactions: VecDeque<Transaction>,
 }
